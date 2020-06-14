@@ -25,25 +25,6 @@ def run_query(query, variables):
         raise Exception("Query failed to run by returning code of {}. {}".format(request.status_code, query))
 
         
-# The GraphQL query (with a few aditional bits included) itself defined as a multi-line string.       
-query1 = """
-query($repo:String!){
-    repository(owner:"VodafoneAustralia", name:$repo) {
-        vulnerabilityAlerts(first:5) {
-            edges {
-                node {
-                    vulnerableManifestFilename
-                    securityAdvisory {
-                        severity
-                        summary
-                    }
-                }
-            }
-        }
-    }
-}
-"""
-
 repo_query =  """
 query($number_of_repos:Int! $afterCursor:String) {
     search(query:"org:VodafoneAustralia" type:REPOSITORY first:$number_of_repos after:$afterCursor) {
@@ -56,8 +37,18 @@ query($number_of_repos:Int! $afterCursor:String) {
         edges {
             node {
                 ... on Repository {
-                nameWithOwner
-                name
+                    name
+                    vulnerabilityAlerts(first:6) {
+                        edges {
+                            node {
+                                vulnerableManifestFilename
+                                securityAdvisory {
+                                    severity
+                                    summary
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -72,42 +63,32 @@ repo_variables = """
 }}
 """
 
-# repo_var = variables.format(cursor="null")
-# repo_var = variables.format(cursor='"Y3Vyc29yOjEw"')
-# print(repo_var)
-
+##
+# Execute the repo query that loops through all repos looking for vulnerabilities
+# takes pagination
+# Limitation - currently only looks for the first 6 vulnerabilities
+#
 def scanRepos(cursor = "null"):
 
+    # setup the cursor for pagination
     if cursor != "null":
         cursor = '"' + cursor + '"'
     repo_var = repo_variables.format(cursor=cursor)
 
-    #pprint(repo_var)
-    result = run_query(repo_query, repo_var) # Execute the query
-    #repos = json.loads(result)
-    #pprint(result)
+    # excute the query
+    result = run_query(repo_query, repo_var)
 
+    # output the results
     for e in result['data']['search']['edges'] :
         name = e['node']['name']
-        getVulnerabilities(name)
+
+        alerts = e['node']['vulnerabilityAlerts']['edges']
+        for a in alerts:
+            print("{}: {}".format(name, a['node']['securityAdvisory']['summary']))
     
+    # recurse the next page
     pageInfo = result['data']['search']['pageInfo']
     if (pageInfo['hasNextPage']) :
         scanRepos(pageInfo['endCursor'])
-
-def getVulnerabilities(name):
-    var_repo = """
-    {{
-       "repo": "{name}"
-    }}
-    """.format(name=name)
-
-    #print(var_repo)
-    #print(name)
-    sec = run_query(query1, var_repo)
-    #pprint(sec)
-    alerts = sec['data']['repository']['vulnerabilityAlerts']['edges']
-    for a in alerts :
-        print("Repo {}: {}".format(name, a['node']['securityAdvisory']['summary']))
 
 scanRepos()
