@@ -12,6 +12,7 @@ from pprint import pprint
 config = configparser.ConfigParser()
 config.read('github.ini')
 token = config['DEFAULT']['Token']
+org = config['DEFAULT']['Organisation']
 
 headers = {"Authorization": "Bearer " + token}
 
@@ -26,8 +27,8 @@ def run_query(query, variables):
 
         
 repo_query =  """
-query($number_of_repos:Int! $afterCursor:String) {
-    search(query:"org:VodafoneAustralia" type:REPOSITORY first:$number_of_repos after:$afterCursor) {
+query($number_of_repos:Int! $afterCursor:String $org:String!) {
+    search(query:$org type:REPOSITORY first:$number_of_repos after:$afterCursor) {
         repositoryCount
         pageInfo {
             startCursor
@@ -59,10 +60,12 @@ query($number_of_repos:Int! $afterCursor:String) {
 repo_variables = """
 {{
    "number_of_repos": 10,
-   "afterCursor": {cursor}
+   "afterCursor": {cursor},
+   "org": "org:{org}"
 }}
 """
 
+  
 ##
 # Execute the repo query that loops through all repos looking for vulnerabilities
 # takes pagination
@@ -73,7 +76,7 @@ def scanRepos(cursor = "null"):
     # setup the cursor for pagination
     if cursor != "null":
         cursor = '"' + cursor + '"'
-    repo_var = repo_variables.format(cursor=cursor)
+    repo_var = repo_variables.format(cursor=cursor, org=org)
 
     # excute the query
     result = run_query(repo_query, repo_var)
