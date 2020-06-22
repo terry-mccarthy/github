@@ -87,7 +87,7 @@ def scanRepos(cursor = "null"):
 
         alerts = e['node']['vulnerabilityAlerts']['edges']
         for a in alerts:
-            print("{}: {}".format(name, a['node']['securityAdvisory']['summary']))
+            print("{}: ({}) - {}".format(name, a['node']['vulnerableManifestFilename'], a['node']['securityAdvisory']['summary']))
     
     # recurse the next page
     pageInfo = result['data']['search']['pageInfo']
