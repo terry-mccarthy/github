@@ -39,13 +39,22 @@ query($number_of_repos:Int! $afterCursor:String $org:String!) {
             node {
                 ... on Repository {
                     name
-                    vulnerabilityAlerts(first:6) {
+                    vulnerabilityAlerts(first:100) {
                         edges {
                             node {
                                 vulnerableManifestFilename
+                                vulnerableManifestPath
+                                vulnerableRequirements
                                 securityAdvisory {
+                                    ghsaId
                                     severity
                                     summary
+                                    description
+                                }
+                                securityVulnerability {
+                                    package {
+                                        name
+                                    }
                                 }
                             }
                         }
@@ -81,13 +90,32 @@ def scanRepos(cursor = "null"):
     # excute the query
     result = run_query(repo_query, repo_var)
 
+    #pprint(result)
     # output the results
     for e in result['data']['search']['edges'] :
         name = e['node']['name']
 
+        v = {}
         alerts = e['node']['vulnerabilityAlerts']['edges']
+        
         for a in alerts:
-            print("{}: ({}) - {}".format(name, a['node']['vulnerableManifestFilename'], a['node']['securityAdvisory']['summary']))
+            package = a['node']['securityVulnerability']['package']['name']
+            ghsaId = a['node']['securityAdvisory']['ghsaId']
+            severity = a['node']['securityAdvisory']['severity']
+            warning = ":".join((severity, ghsaId))
+            description = a['node']['securityAdvisory']['description']
+
+            if package in v:
+                v[package].append(warning)
+            else:
+                v[package]=[warning]
+            #( {['node']['vulnerableManifestFilename']  a['node']['securityAdvisory']['ghsaId']})
+            if severity == 'CRITICAL':
+                print("{}: ({}) - {}|{}|{}".format(name, a['node']['vulnerableManifestFilename'], package, a['node']['securityAdvisory']['summary'], warning))
+                #print(description)
+
+        for p in v:
+            print("{}: {} - {}".format(name, p, ",".join(v[p])))
     
     # recurse the next page
     pageInfo = result['data']['search']['pageInfo']

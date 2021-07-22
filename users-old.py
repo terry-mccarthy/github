@@ -2,7 +2,6 @@ from github import Github
 import configparser
 import sys
 import re
-import datetime
 
 # Expecting a github.ini file with
 # [DEFUALT]
@@ -13,7 +12,7 @@ config.read('github.ini')
 g = Github(config['DEFAULT']['Token'])
 
 from pprint import pprint
-def get_repos():
+def get_users(user):
   """
   Seach all Voda repos
   https://developer.github.com/v3/search/users
@@ -26,25 +25,13 @@ def get_repos():
   
   #def since
   vha_org = g.get_organization("VodafoneAustralia")
-  repos = vha_org.get_repos()
-  name = ''
-  for r in repos:
-    #pprint(vars(r))
-    name = r._name.value
-    repo_id = r._id.value
-    print("{} - {}".format(name, repo_id))
-    #break
-    if (name == 'Shop') :
-      #h = r.get_hooks()
-      #print("Name: {} - count: {}".format(name, h[0]))
-      n = r.get_notifications(since=datetime.datetime(2020, 1, 1, 23, 37, 16, 361995))
-      pprint(vars(n))
-      #pprint(vars(h[0]._active))
-      #return
-    # found = user is None or re.search(user, m.login)
-    # if found: 
-    #   print(f'{m}  {m.created_at}')
+  members = vha_org.get_members()
+  for m in members:
+    pprint(vars(m))
+    found = user is None or re.search(user, m.login)
+    if found: 
+      print(f'{m}  {m.created_at}')
 
 if __name__ == '__main__':
   user = sys.argv[1] if len(sys.argv) > 1 else None
-  get_repos()
+  get_users(user)
