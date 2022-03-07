@@ -70,6 +70,7 @@ def scan(cursor = 'null'):
     user_vars = query_variables.format(org=org,after=cursor)
 
     result = run_query(repo_query, user_vars)
+    #print(result)
 
     for user in result['data']['organization']['membersWithRole']['edges']:
       email = user['node']['organizationVerifiedDomainEmails'][0] \
